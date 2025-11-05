@@ -3,8 +3,8 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
 export default defineConfig({
-      // Specifica il percorso base per il deployment in sottocartella
-      base: '/generentolo/',
+      // Per deploy nella root del dominio usa '/', per sottocartella usa '/path/'
+      base: '/',
       server: {
         port: 3000,
         host: '0.0.0.0',
