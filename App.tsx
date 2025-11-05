@@ -742,9 +742,11 @@ const ImageDisplay: React.FC<ImageDisplayProps> = ({ images, isLoading, onDownlo
             )}
             {!isLoading && images.length === 0 && (
                  <div className="text-center text-light-text-muted dark:text-dark-text-muted">
-                     <SparklesIcon className="w-16 h-16 mx-auto mb-4 opacity-30 text-brand-purple"/>
-                    <p className="font-semibold">{t.imageDisplayPlaceholderTitle}</p>
-                    <p className="text-sm">{t.imageDisplayPlaceholderSubtext}</p>
+                    <div className="w-24 h-24 mx-auto mb-4 rounded-full bg-gradient-to-br from-brand-blue/10 to-brand-purple/10 flex items-center justify-center">
+                        <div className="w-16 h-16 rounded-full bg-gradient-to-br from-brand-blue/20 to-brand-purple/20"></div>
+                    </div>
+                    <p className="font-semibold text-lg">{t.imageDisplayPlaceholderTitle}</p>
+                    <p className="text-sm opacity-70">{t.imageDisplayPlaceholderSubtext}</p>
                 </div>
             )}
         </div>
