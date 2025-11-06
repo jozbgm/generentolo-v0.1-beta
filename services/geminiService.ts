@@ -417,9 +417,18 @@ export const rewritePromptWithStyleImage = async (currentPrompt: string, styleFi
 
 // Helper function to get ULTRA-AGGRESSIVE aspect ratio composition guidance
 const getAspectRatioGuidance = (aspectRatio: string, language: 'en' | 'it' = 'en'): string => {
+    // Handle "Auto" aspect ratio - use reference image's aspect ratio
+    if (aspectRatio === 'Auto') {
+        if (language === 'it') {
+            return "⚠️ IMPORTANTE - MANTIENI LE PROPORZIONI DELL'IMMAGINE DI RIFERIMENTO: Usa le stesse proporzioni (aspect ratio) dell'immagine caricata. RIEMPI TUTTO IL FOTOGRAMMA: NO bande bianche, NO bordi vuoti! ESTENDI la scena da bordo a bordo.";
+        } else {
+            return "⚠️ CRITICAL - MAINTAIN REFERENCE IMAGE ASPECT RATIO: Use the same aspect ratio as the uploaded reference image. FILL ENTIRE FRAME: NO white bars, NO empty borders! EXTEND scene edge-to-edge.";
+        }
+    }
+
     const [w, h] = aspectRatio.split(':').map(Number);
     const ratio = w / h;
-    
+
     if (language === 'it') {
         if (ratio >= 1.2) { // Landscape (4:3 = 1.333, 16:9 = 1.777, etc)
             return "⚠️ IMPORTANTE - RIEMPI TUTTO IL FOTOGRAMMA ORIZZONTALE: NO bande bianche, NO bordi vuoti, NO letterboxing! ESTENDI la scena da BORDO A BORDO orizzontalmente. Composizione PANORAMICA AMPIA che occupa TUTTA la larghezza. Crop stretto. Wall-to-wall. Edge-to-edge. ZERO spazio vuoto ai lati.";
@@ -679,7 +688,7 @@ const retryWithBackoff = async <T>(
     throw lastError;
 };
 
-export const generateImage = async (prompt: string, aspectRatio: string, referenceFiles: File[], styleFile: File | null, userApiKey: string | null, negativePrompt?: string, seed?: string, language: 'en' | 'it' = 'en'): Promise<string> => {
+export const generateImage = async (prompt: string, aspectRatio: string, referenceFiles: File[], styleFile: File | null, structureFile: File | null, userApiKey: string | null, negativePrompt?: string, seed?: string, language: 'en' | 'it' = 'en'): Promise<string> => {
     try {
         const ai = getAiClient(userApiKey);
         
@@ -714,12 +723,22 @@ export const generateImage = async (prompt: string, aspectRatio: string, referen
         if (styleFile) {
             styleDescription = await extractStyleDescription(styleFile, userApiKey, language);
             if (styleDescription) {
-                instructionParts.push(language === 'it' 
-                    ? `Applica questo stile visivo: ${styleDescription}` 
+                instructionParts.push(language === 'it'
+                    ? `Applica questo stile visivo: ${styleDescription}`
                     : `Apply this visual style: ${styleDescription}`);
             }
         }
-        
+
+        // Add structure guidance if structure image is provided (ControlNet-like)
+        if (structureFile) {
+            // Add structure image to imageParts for visual reference
+            imageParts.push(await fileToGenerativePart(structureFile));
+
+            instructionParts.push(language === 'it'
+                ? `🏗️ COMPOSIZIONE E STRUTTURA OBBLIGATORIE - PRESERVA LA STRUTTURA SPAZIALE: L'ultima immagine fornita è una GUIDA STRUTTURALE (come ControlNet depth map). DEVI mantenere ESATTAMENTE la stessa composizione, disposizione spaziale, profondità e linee principali di questa immagine guida. Trattala come una mappa di profondità: mantieni le posizioni relative degli elementi, le proporzioni, la prospettiva e la struttura generale. NON cambiare il layout! NON riorganizzare gli elementi! Mantieni la geometria della scena identica. Puoi cambiare stile, colori e dettagli, ma la STRUTTURA deve rimanere INVARIATA.`
+                : `🏗️ MANDATORY COMPOSITION & STRUCTURE - PRESERVE SPATIAL STRUCTURE: The last image provided is a STRUCTURAL GUIDE (like ControlNet depth map). You MUST maintain EXACTLY the same composition, spatial arrangement, depth and main lines of this guide image. Treat it as a depth map: keep relative positions of elements, proportions, perspective and overall structure. DO NOT change the layout! DO NOT rearrange elements! Keep the scene geometry identical. You can change style, colors and details, but the STRUCTURE must remain UNCHANGED.`);
+        }
+
         // Build full prompt
         let fullPrompt = `${instructionParts.join(' ')} ${prompt}`;
        
@@ -809,8 +828,13 @@ export const generateImage = async (prompt: string, aspectRatio: string, referen
             if (part.inlineData) {
                 const base64ImageBytes: string = part.inlineData.data;
                 const originalImageDataUrl = `data:${part.inlineData.mimeType};base64,${base64ImageBytes}`;
-                
-                // Apply crop and resize
+
+                // Skip cropping for "Auto" aspect ratio - use reference image's original ratio
+                if (aspectRatio === 'Auto') {
+                    return originalImageDataUrl;
+                }
+
+                // Apply crop and resize for specific aspect ratios
                 const finalImageDataUrl = await aggressiveCropAndResize(originalImageDataUrl, aspectRatio);
                 return finalImageDataUrl;
             }

@@ -8,14 +8,17 @@ import { SunIcon, MoonIcon, UploadIcon, DownloadIcon, ZoomInIcon, SparklesIcon, 
 // --- Localization ---
 const translations = {
   en: {
-    headerTitle: 'Generentolo v0.1 Beta',
+    headerTitle: 'Generentolo v0.2 Beta',
     headerSubtitle: 'Let me do it for you!',
     letMeDoForYou: 'Magic Prompt',
     refImagesTitle: 'Reference & Style Images',
     styleRefTitle: 'Style Reference',
+    structureRefTitle: 'Structure Guide',
     addStyleImage: 'Add / Drop Style Image',
+    addStructureImage: 'Add / Drop Structure Image',
     addImage: 'Add / Drop Images',
     optional: 'Optional',
+    structureTooltip: 'Upload an image whose composition and structure will be preserved in the generation (like ControlNet depth map)',
     creativePromptsTitle: 'Creative Prompts',
     generateSuggestions: 'Generate Suggestions',
     suggestionsPlaceholder: "Click 'Generate Suggestions' to get creative ideas.",
@@ -40,7 +43,7 @@ const translations = {
     chooseOptions: 'Choose options...',
     numImagesTitle: 'Number of Images',
     aspectRatioTitle: 'Aspect Ratio',
-    aspectRatioTooltip: "Sets the width-to-height ratio of the final image (e.g., 16:9 for landscape).",
+    aspectRatioTooltip: "Sets the width-to-height ratio of the final image. 'Auto' uses the aspect ratio of the reference image.",
     generateButton: 'Generate',
     generatingButton: 'Generating...',
     generatingStatus: 'Nano is generating...',
@@ -106,14 +109,17 @@ const translations = {
 
   },
   it: {
-    headerTitle: 'Generentolo v0.1 Beta',
+    headerTitle: 'Generentolo v0.2 Beta',
     headerSubtitle: 'Let me do it for you!',
     letMeDoForYou: 'Magic Prompt',
     refImagesTitle: 'Immagini di Riferimento e Stile',
     styleRefTitle: 'Riferimento Stile',
+    structureRefTitle: 'Guida Struttura',
     addStyleImage: 'Aggiungi / Trascina Stile',
+    addStructureImage: 'Aggiungi / Trascina Struttura',
     addImage: 'Aggiungi / Trascina Immagini',
     optional: 'Facoltativo',
+    structureTooltip: 'Carica un\'immagine la cui composizione e struttura verranno preservate nella generazione (come depth map ControlNet)',
     creativePromptsTitle: 'Prompt Creativi',
     generateSuggestions: 'Genera Suggerimenti',
     suggestionsPlaceholder: "Clicca 'Genera Suggerimenti' per ottenere idee creative.",
@@ -138,7 +144,7 @@ const translations = {
     chooseOptions: 'Scegli opzioni...',
     numImagesTitle: 'Numero di Immagini',
     aspectRatioTitle: 'Proporzioni',
-    aspectRatioTooltip: "Imposta il rapporto larghezza-altezza dell'immagine finale (es. 16:9 per orizzontale).",
+    aspectRatioTooltip: "Imposta il rapporto larghezza-altezza dell'immagine finale. 'Auto' usa le proporzioni dell'immagine di riferimento.",
     generateButton: 'Genera',
     generatingButton: 'In generazione...',
     generatingStatus: 'Nano sta generando...',
@@ -345,10 +351,14 @@ const ReferencePanel: React.FC<{
     onAddStyleImage: (file: File) => void;
     onRemoveStyleImage: () => void;
     styleImage: File | null;
-}> = ({ onAddImages, onRemoveImage, referenceImages, onAddStyleImage, onRemoveStyleImage, styleImage }) => {
+    onAddStructureImage: (file: File) => void;
+    onRemoveStructureImage: () => void;
+    structureImage: File | null;
+}> = ({ onAddImages, onRemoveImage, referenceImages, onAddStyleImage, onRemoveStyleImage, styleImage, onAddStructureImage, onRemoveStructureImage, structureImage }) => {
     const { t } = useLocalization();
     const [isDraggingRef, setIsDraggingRef] = useState(false);
     const [isDraggingStyle, setIsDraggingStyle] = useState(false);
+    const [isDraggingStructure, setIsDraggingStructure] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -377,7 +387,20 @@ const ReferencePanel: React.FC<{
         const files = Array.from(e.dataTransfer.files).filter((file: File) => file.type.startsWith('image/'));
         if (files.length > 0) onAddStyleImage(files[0]);
     };
-    
+
+    const handleStructureFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files.length > 0) onAddStructureImage(e.target.files[0]);
+        e.target.value = '';
+    };
+
+    const handleStructureDragEnter = (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); setIsDraggingStructure(true); };
+    const handleStructureDragLeave = (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); setIsDraggingStructure(false); };
+    const handleStructureDrop = (e: React.DragEvent) => {
+        e.preventDefault(); e.stopPropagation(); setIsDraggingStructure(false);
+        const files = Array.from(e.dataTransfer.files).filter((file: File) => file.type.startsWith('image/'));
+        if (files.length > 0) onAddStructureImage(files[0]);
+    };
+
     const ImagePreview: React.FC<{ file: File, index: number, isGuide?: boolean, onRemove?: (index: number) => void }> = ({ file, index, isGuide, onRemove }) => {
         const previewUrl = useMemo(() => URL.createObjectURL(file), [file]);
         useEffect(() => {
@@ -457,6 +480,30 @@ const ReferencePanel: React.FC<{
                         </label>
                     )}
                     <input id="style-file-upload" type="file" className="hidden" accept="image/*" onChange={handleStyleFileChange} />
+                </div>
+            </div>
+
+            <div className="border-t border-light-border dark:border-dark-border/50"></div>
+
+            <div
+                onDragEnter={handleStructureDragEnter} onDragLeave={handleStructureDragLeave} onDragOver={handleDragOver} onDrop={handleStructureDrop}
+                className={`rounded-xl transition-all relative ${isDraggingStructure ? 'border-2 border-dashed border-brand-blue bg-brand-blue/10 p-1' : 'border-2 border-transparent'}`}
+            >
+                <div className="relative group shadow-[0_0_8px_2px_rgba(59,130,246,0.5)] rounded-xl">
+                     <div className="absolute top-2 left-2 px-2 py-1 bg-brand-blue/80 text-white text-xs rounded-full font-semibold backdrop-blur-sm z-10 flex items-center gap-1">
+                        STRUCTURE
+                        <Tooltip text={t.structureTooltip} />
+                     </div>
+                    {structureImage ? (
+                        <StyleImagePreview file={structureImage} onRemove={onRemoveStructureImage} />
+                    ) : (
+                        <label htmlFor="structure-file-upload" className="cursor-pointer w-full bg-light-surface dark:bg-dark-surface/50 border-2 border-dashed border-light-border dark:border-dark-border rounded-xl flex flex-col justify-center items-center text-light-text-muted dark:text-dark-text-muted hover:border-brand-blue transition-colors p-6 text-center">
+                            <UploadIcon className="w-8 h-8 mb-2" />
+                            <span className="text-sm font-medium">{t.addStructureImage}</span>
+                            <span className="text-xs mt-1">{t.structureRefTitle} ({t.optional})</span>
+                        </label>
+                    )}
+                    <input id="structure-file-upload" type="file" className="hidden" accept="image/*" onChange={handleStructureFileChange} />
                 </div>
             </div>
         </div>
@@ -550,8 +597,8 @@ interface ControlPanelProps {
     onCopySeed: () => void;
     promptTextareaRef: React.RefObject<HTMLTextAreaElement>;
 }
-const ControlPanel: React.FC<ControlPanelProps> = (props) => {
-    const { 
+const ControlPanel: React.FC<ControlPanelProps> = React.memo((props) => {
+    const {
         dynamicTools, selectedAspectRatio, onAspectRatioChange, onMagicPrompt, onGenerateTools,
         isLoading, isToolsLoading, isEnhancing, referenceImages, styleReferenceImage, numImages, onNumImagesChange,
         userApiKey, language, editedPrompt, onEditedPromptChange, negativePrompt, onNegativePromptChange, seed, onSeedChange, onRandomizeSeed, onCopySeed, promptTextareaRef
@@ -607,7 +654,7 @@ const ControlPanel: React.FC<ControlPanelProps> = (props) => {
         }
     };
 
-    const aspectRatios = ["1:1", "16:9", "9:16", "4:3", "3:4"];
+    const aspectRatios = ["Auto", "1:1", "16:9", "9:16", "4:3", "3:4"];
     const isActionDisabled = isLoading || isRewriting || isEnhancing || isGeneratingNegativePrompt;
     const hasImages = referenceImages.length > 0 || styleReferenceImage;
     const isPromptEmpty = editedPrompt.trim() === '';
@@ -722,7 +769,7 @@ const ControlPanel: React.FC<ControlPanelProps> = (props) => {
             <ToolSelectionModal isOpen={!!editingTool} onClose={() => setEditingTool(null)} tool={editingTool} initialSelections={editingTool ? toolSettings[editingTool.name] : []} onSave={handleToolSave} />
         </div>
     );
-};
+});
 
 interface ImageDisplayProps {
     images: GeneratedImage[];
@@ -1524,6 +1571,7 @@ export default function App() {
     const [language, setLanguage] = useState<Language>(getInitialLanguage());
     const [referenceImages, setReferenceImages] = useState<File[]>([]);
     const [styleReferenceImage, setStyleReferenceImage] = useState<File | null>(null);
+    const [structureImage, setStructureImage] = useState<File | null>(null);
     const [prompts, setPrompts] = useState<string[]>([]);
     const [isPromptsLoading, setIsPromptsLoading] = useState(false);
     const [editedPrompt, setEditedPrompt] = useState<string>('');
@@ -1691,7 +1739,7 @@ export default function App() {
             const allReferenceFiles = [...referenceImages];
             
             const generationPromises = Array(numImagesToGenerate).fill(0).map(() => 
-                geminiService.generateImage(editedPrompt, aspectRatio, allReferenceFiles, styleReferenceImage, userApiKey, negativePrompt, seed, language)
+                geminiService.generateImage(editedPrompt, aspectRatio, allReferenceFiles, styleReferenceImage, structureImage, userApiKey, negativePrompt, seed, language)
             );
             const imageDataUrls = await Promise.all(generationPromises);
 
@@ -1926,12 +1974,13 @@ export default function App() {
     const handleResetInterface = useCallback(() => {
         setReferenceImages([]);
         setStyleReferenceImage(null);
+        setStructureImage(null);
         setPrompts([]);
         setEditedPrompt('');
         setNegativePrompt('');
         setSeed('');
         setDynamicTools([]);
-        setAspectRatio('1:1');
+        setAspectRatio('Auto');
         setCurrentImages([]);
         setNumImagesToGenerate(1);
     }, []);
@@ -1976,6 +2025,9 @@ export default function App() {
                             onAddStyleImage={handleAddStyleImage}
                             onRemoveStyleImage={handleRemoveStyleImage}
                             styleImage={styleReferenceImage}
+                            onAddStructureImage={setStructureImage}
+                            onRemoveStructureImage={() => setStructureImage(null)}
+                            structureImage={structureImage}
                         />
                         <div className="border-t border-light-border dark:border-dark-border mx-4"></div>
                         <ControlPanel 

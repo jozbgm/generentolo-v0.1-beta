@@ -1,8 +1,8 @@
-# 🎨 Generentolo v0.1 Beta
+# 🎨 Generentolo v0.2 Beta
 
 **Professional AI-Powered Image Generation Web Application**
 
-A sophisticated web application for generating high-quality images using Google's Gemini 2.5 Flash Image model. Designed for graphic designers, marketers, and creative professionals who need precise control over AI-generated imagery.
+A sophisticated web application for generating high-quality images using Google's Gemini 2.5 Flash Image model with ControlNet-like structure guidance. Designed for graphic designers, marketers, and creative professionals who need precise control over AI-generated imagery.
 
 [![Live Demo](https://img.shields.io/badge/Live-Demo-blue?style=for-the-badge)](https://www.dugongo.it/generentolo/)
 [![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
@@ -16,6 +16,7 @@ A sophisticated web application for generating high-quality images using Google'
 ### 🖼️ **Multi-Reference Image Generation**
 - Upload up to **4 reference images** to combine elements intelligently
 - Separate **style reference image** for consistent visual branding
+- **NEW: Structure guide image** (ControlNet-like) to preserve spatial composition and depth
 - Advanced AI prompt engineering ensures all subjects are included in final output
 
 ### 🎯 **Professional Creative Controls**
@@ -27,7 +28,8 @@ A sophisticated web application for generating high-quality images using Google'
 - **15-20 options per tool** for granular creative control
 
 ### 📐 **Aspect Ratio Mastery**
-- Support for all common ratios: **1:1, 16:9, 9:16, 4:3, 3:4, 21:9**
+- **NEW: "Auto" mode** - Uses reference image's original aspect ratio
+- Support for all common ratios: **1:1, 16:9, 9:16, 4:3, 3:4**
 - **Aggressive white border detection** and automatic cropping
 - **High-resolution output**: Always 2048px on longest side, minimum 1024px on shortest
 - Smart sizing ensures frame is completely filled with no letterboxing
@@ -37,6 +39,10 @@ A sophisticated web application for generating high-quality images using Google'
 - **Seed Control** for reproducible results
 - **Batch Generation** - Create up to 4 images at once
 - **Inpainting** - Edit specific regions with mask-based AI editing
+- **NEW: Image Upscaling** - 2x/4x quality enhancement with ClipDrop API
+  - Monthly quota tracking (100 free upscales/month)
+  - Interactive before/after comparison slider
+  - Automatic quality optimization
 
 ### 💾 **Persistent History & Storage**
 - **Last 12 generations** saved automatically
@@ -307,6 +313,36 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 **Website**: [https://bgm.media](https://bgm.media)
 **Email**: [joz@bgm.media](mailto:joz@bgm.media)
 **Project Link**: [https://github.com/jozbgm/generentolo-v0.1-beta](https://github.com/jozbgm/generentolo-v0.1-beta)
+
+---
+
+## 📋 Changelog
+
+### v0.2 Beta (January 2025)
+**Major Features:**
+- ✨ **Structure Guide** - ControlNet-like spatial composition preservation
+- 🎯 **Auto Aspect Ratio** - Automatically use reference image proportions
+- ⚡ **Image Upscaling** - 2x/4x enhancement with ClipDrop integration
+- 📊 **Quota Tracking** - Visual monthly upscale counter
+- 🔄 **Image Comparison** - Interactive before/after slider for upscaled images
+
+**Improvements:**
+- 🐛 Fixed prompt textarea flickering bug with React.memo optimization
+- 🎨 Improved UI responsiveness
+- 💾 Better memory management for large images
+- 📱 Enhanced mobile experience
+
+### v0.1 Beta (December 2024)
+**Initial Release:**
+- Multi-reference image generation
+- Style reference support
+- Professional tools with AI-generated options
+- Aspect ratio controls with aggressive cropping
+- Negative prompts & seed control
+- Inpainting functionality
+- Bilingual interface (EN/IT)
+- History management with IndexedDB
+- Keyboard shortcuts
 
 ---
 
