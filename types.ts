@@ -7,6 +7,7 @@ export interface GeneratedImage {
   timestamp: number;
   negativePrompt?: string;
   seed?: string;
+  originalImageDataUrl?: string; // Original image before upscaling (for comparison)
 }
 
 export interface DynamicTool {
