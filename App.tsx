@@ -344,6 +344,49 @@ const Header: React.FC<HeaderProps> = ({ theme, toggleTheme, onOpenSettings, onO
     );
 };
 
+// Memoized ImagePreview component to prevent flickering
+const ImagePreview = React.memo<{ file: File; index: number; isGuide?: boolean; onRemove?: (index: number) => void }>(
+    ({ file, index, isGuide, onRemove }) => {
+        const previewUrl = useMemo(() => URL.createObjectURL(file), [file]);
+        useEffect(() => {
+            return () => URL.revokeObjectURL(previewUrl);
+        }, [previewUrl]);
+
+        return (
+            <div className="relative group aspect-square rounded-xl shadow-[0_0_12px_3px_rgba(250,204,21,0.6)] bg-light-surface/50 dark:bg-dark-surface/30 flex items-center justify-center">
+                <div className={`absolute top-1.5 left-1.5 px-1.5 py-0.5 text-[10px] font-bold rounded-full backdrop-blur-sm z-10 ${isGuide ? 'bg-blue-400/20 text-blue-800 dark:text-blue-300' : 'bg-yellow-400/30 text-yellow-800 dark:text-yellow-300'}`}>
+                    {isGuide ? 'GUIDE' : `REF.${index + 1}`}
+                </div>
+                <img src={previewUrl} alt={`Reference ${index + 1}`} className="w-full h-full object-cover rounded-xl" />
+                {!isGuide && onRemove && (
+                    <button onClick={(e) => { e.stopPropagation(); onRemove(index); }} className="absolute top-1.5 right-1.5 bg-black/60 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity z-10" aria-label={`Remove image ${index + 1}`}>
+                        <XIcon className="w-3 h-3"/>
+                    </button>
+                )}
+            </div>
+        );
+    }
+);
+
+// Memoized StyleImagePreview component to prevent flickering
+const StyleImagePreview = React.memo<{ file: File; onRemove: () => void }>(
+    ({ file, onRemove }) => {
+        const previewUrl = useMemo(() => URL.createObjectURL(file), [file]);
+        useEffect(() => {
+            return () => URL.revokeObjectURL(previewUrl);
+        }, [previewUrl]);
+
+        return (
+            <>
+                <img src={previewUrl} alt="Style reference" className="w-full h-auto max-h-48 object-cover rounded-xl" />
+                <button onClick={onRemove} className="absolute top-2 right-2 bg-black/60 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm opacity-0 group-hover:opacity-100 transition-opacity z-10" aria-label="Remove style image">
+                    <XIcon className="w-4 h-4"/>
+                </button>
+            </>
+        );
+    }
+);
+
 const ReferencePanel: React.FC<{
     onAddImages: (files: File[]) => void;
     onRemoveImage: (index: number) => void;
@@ -399,43 +442,6 @@ const ReferencePanel: React.FC<{
         e.preventDefault(); e.stopPropagation(); setIsDraggingStructure(false);
         const files = Array.from(e.dataTransfer.files).filter((file: File) => file.type.startsWith('image/'));
         if (files.length > 0) onAddStructureImage(files[0]);
-    };
-
-    const ImagePreview: React.FC<{ file: File, index: number, isGuide?: boolean, onRemove?: (index: number) => void }> = ({ file, index, isGuide, onRemove }) => {
-        const previewUrl = useMemo(() => URL.createObjectURL(file), [file]);
-        useEffect(() => {
-            return () => URL.revokeObjectURL(previewUrl);
-        }, [previewUrl]);
-
-        return (
-            <div className="relative group aspect-square rounded-xl shadow-[0_0_12px_3px_rgba(250,204,21,0.6)] bg-light-surface/50 dark:bg-dark-surface/30 flex items-center justify-center">
-                <div className={`absolute top-1.5 left-1.5 px-1.5 py-0.5 text-[10px] font-bold rounded-full backdrop-blur-sm z-10 ${isGuide ? 'bg-blue-400/20 text-blue-800 dark:text-blue-300' : 'bg-yellow-400/30 text-yellow-800 dark:text-yellow-300'}`}>
-                    {isGuide ? 'GUIDE' : `REF.${index + 1}`}
-                </div>
-                <img src={previewUrl} alt={`Reference ${index + 1}`} className="w-full h-full object-cover rounded-xl" />
-                {!isGuide && onRemove && (
-                    <button onClick={(e) => { e.stopPropagation(); onRemove(index); }} className="absolute top-1.5 right-1.5 bg-black/60 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity z-10" aria-label={`Remove image ${index + 1}`}>
-                        <XIcon className="w-3 h-3"/>
-                    </button>
-                )}
-            </div>
-        );
-    };
-
-    const StyleImagePreview: React.FC<{ file: File, onRemove: () => void }> = ({ file, onRemove }) => {
-        const previewUrl = useMemo(() => URL.createObjectURL(file), [file]);
-        useEffect(() => {
-            return () => URL.revokeObjectURL(previewUrl);
-        }, [previewUrl]);
-
-        return (
-            <>
-                <img src={previewUrl} alt="Style reference" className="w-full h-auto max-h-48 object-cover rounded-xl" />
-                <button onClick={onRemove} className="absolute top-2 right-2 bg-black/60 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm opacity-0 group-hover:opacity-100 transition-opacity z-10" aria-label="Remove style image">
-                    <XIcon className="w-4 h-4"/>
-                </button>
-            </>
-        );
     };
 
     return (
