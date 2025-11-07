@@ -809,6 +809,18 @@ export const generateImage = async (prompt: string, aspectRatio: string, referen
     try {
         const ai = getAiClient(userApiKey);
 
+        /*
+         * SCENARI SUPPORTATI:
+         * 1. 0 reference images → generazione text-to-image pura (solo prompt utente)
+         * 2. 1 reference image → generazione basata su singola reference
+         * 3. 2+ reference images → combining con enrichment automatico "Image 1", "Image 2"
+         * 4. + style image (opzionale) → estratta come descrizione testuale, aggiunta al prompt
+         * 5. + structure image (opzionale) → aggiunta come ultima immagine, guidance ControlNet-like
+         *
+         * Nota: style image NON viene aggiunta a imageParts (solo descrizione testuale)
+         *       structure image VIENE aggiunta a imageParts come ultima
+         */
+
         const imageParts: any[] = [];
 
         // Process ONLY reference images (NOT style image)
@@ -874,9 +886,16 @@ export const generateImage = async (prompt: string, aspectRatio: string, referen
             // Add structure image to imageParts for visual reference
             imageParts.push(await fileToGenerativePart(structureFile));
 
-            instructionParts.push(language === 'it'
-                ? `🏗️ STRUTTURA: L'ultima immagine è una guida strutturale. Mantieni la stessa composizione spaziale, layout e geometria. Preserva posizioni, proporzioni e prospettiva.`
-                : `🏗️ STRUCTURE: Last image is a structural guide. Maintain the same spatial composition, layout and geometry. Preserve positions, proportions and perspective.`);
+            // Adatta la guidance in base al numero di immagini totali
+            const structureGuidanceText = referenceFiles.length > 0
+                ? (language === 'it'
+                    ? `🏗️ STRUTTURA: L'ultima immagine è una guida strutturale. Mantieni la stessa composizione spaziale, layout e geometria. Preserva posizioni, proporzioni e prospettiva.`
+                    : `🏗️ STRUCTURE: Last image is a structural guide. Maintain the same spatial composition, layout and geometry. Preserve positions, proportions and perspective.`)
+                : (language === 'it'
+                    ? `🏗️ STRUTTURA: L'immagine fornita è una guida strutturale. Mantieni la stessa composizione spaziale, layout e geometria. Preserva posizioni, proporzioni e prospettiva.`
+                    : `🏗️ STRUCTURE: The provided image is a structural guide. Maintain the same spatial composition, layout and geometry. Preserve positions, proportions and perspective.`);
+
+            instructionParts.push(structureGuidanceText);
         }
 
         // Build full prompt with enriched user prompt
