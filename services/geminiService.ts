@@ -632,6 +632,123 @@ const aggressiveCropAndResize = (imageDataUrl: string, targetAspectRatio: string
     });
 };
 
+// Helper function to enrich user prompt with explicit "Image 1", "Image 2" references
+const enrichPromptWithImageReferences = async (
+    userPrompt: string,
+    referenceFiles: File[],
+    userApiKey: string | null,
+    language: 'en' | 'it' = 'en'
+): Promise<string> => {
+    try {
+        // Se c'è solo 1 reference o nessuna, non serve arricchire
+        if (referenceFiles.length <= 1) return userPrompt;
+
+        const ai = getAiClient(userApiKey);
+
+        // Analizza le reference images per capire i soggetti
+        const imageParts = [];
+        for (const file of referenceFiles) {
+            imageParts.push(await fileToGenerativePart(file));
+        }
+
+        const analysisPrompt = language === 'it'
+            ? `Analizza queste ${referenceFiles.length} immagini e identifica il soggetto principale di ciascuna in modo MOLTO CONCISO (max 3-4 parole per immagine).
+
+Rispondi SOLO con un elenco numerato:
+1. [soggetto immagine 1]
+2. [soggetto immagine 2]
+${referenceFiles.length > 2 ? '3. [soggetto immagine 3]\n' : ''}${referenceFiles.length > 3 ? '4. [soggetto immagine 4]\n' : ''}
+
+Esempi di risposte corrette:
+1. uomo in piedi
+2. logo aziendale
+
+1. donna con vestito
+2. paesaggio urbano
+3. prodotto cosmetico`
+            : `Analyze these ${referenceFiles.length} images and identify the main subject of each one VERY CONCISELY (max 3-4 words per image).
+
+Respond ONLY with a numbered list:
+1. [subject of image 1]
+2. [subject of image 2]
+${referenceFiles.length > 2 ? '3. [subject of image 3]\n' : ''}${referenceFiles.length > 3 ? '4. [subject of image 4]\n' : ''}
+
+Examples of correct responses:
+1. man standing
+2. company logo
+
+1. woman in dress
+2. urban landscape
+3. cosmetic product`;
+
+        const analysisResult = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: { parts: [...imageParts, { text: analysisPrompt }] },
+            config: { temperature: 0.1 }
+        });
+
+        const subjects = analysisResult.text.trim();
+
+        // Ora arricchisci il prompt utente con riferimenti espliciti
+        const enrichmentPrompt = language === 'it'
+            ? `Riscrivi questo prompt per un'IA di generazione immagini incorporando ESPLICITAMENTE i riferimenti "Image 1", "Image 2", ecc.
+
+Soggetti identificati nelle immagini:
+${subjects}
+
+Prompt utente originale: "${userPrompt}"
+
+REGOLE:
+1. Mantieni l'intento originale del prompt
+2. Aggiungi "da Image 1", "da Image 2" quando menzioni i soggetti
+3. Sii CONCISO - max 2 frasi
+4. NON aggiungere dettagli non richiesti
+5. Restituisci SOLO il prompt riscritto, senza spiegazioni
+
+Esempio:
+Originale: "metti il logo sulla felpa dell'uomo"
+Riscritto: "Crea l'uomo da Image 1 che indossa una felpa con il logo da Image 2"`
+            : `Rewrite this prompt for an image generation AI by EXPLICITLY incorporating "Image 1", "Image 2", etc. references.
+
+Subjects identified in images:
+${subjects}
+
+Original user prompt: "${userPrompt}"
+
+RULES:
+1. Maintain the original intent
+2. Add "from Image 1", "from Image 2" when mentioning subjects
+3. Be CONCISE - max 2 sentences
+4. DO NOT add unrequested details
+5. Return ONLY the rewritten prompt, no explanations
+
+Example:
+Original: "put the logo on the man's hoodie"
+Rewritten: "Create the man from Image 1 wearing a hoodie with the logo from Image 2"`;
+
+        const enrichmentResult = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: { parts: [{ text: enrichmentPrompt }] },
+            config: { temperature: 0.2 }
+        });
+
+        const enrichedPrompt = enrichmentResult.text.trim();
+
+        // Fallback: se il prompt arricchito è troppo corto o sembra invalido, usa l'originale
+        if (enrichedPrompt.length < 10 || !enrichedPrompt.toLowerCase().includes('image')) {
+            console.warn('Enrichment failed, using original prompt');
+            return userPrompt;
+        }
+
+        console.log('✅ Prompt enriched with explicit references:', enrichedPrompt);
+        return enrichedPrompt;
+
+    } catch (error) {
+        console.warn('Error enriching prompt, using original:', error);
+        return userPrompt; // Fallback to original on error
+    }
+};
+
 // Helper function to extract style description from style image
 const extractStyleDescription = async (styleFile: File, userApiKey: string | null, language: 'en' | 'it' = 'en'): Promise<string> => {
     try {
@@ -691,31 +808,54 @@ const retryWithBackoff = async <T>(
 export const generateImage = async (prompt: string, aspectRatio: string, referenceFiles: File[], styleFile: File | null, structureFile: File | null, userApiKey: string | null, negativePrompt?: string, seed?: string, language: 'en' | 'it' = 'en'): Promise<string> => {
     try {
         const ai = getAiClient(userApiKey);
-        
+
         const imageParts: any[] = [];
-        
+
         // Process ONLY reference images (NOT style image)
         for (const file of referenceFiles) {
             imageParts.push(await fileToGenerativePart(file));
         }
 
+        // STEP 1: Enrich user prompt with explicit "Image 1", "Image 2" references (if multiple references)
+        let enrichedPrompt = prompt;
+        if (referenceFiles.length > 1) {
+            enrichedPrompt = await enrichPromptWithImageReferences(prompt, referenceFiles, userApiKey, language);
+        }
+
         // Aspect ratio guidance (simplified)
         const aspectRatioGuidance = getAspectRatioGuidance(aspectRatio, language);
-        
+
         const instructionParts: string[] = [aspectRatioGuidance];
-        
-        if (referenceFiles.length > 0) {
-            const imageCountText = language === 'it'
-                ? `Hai ricevuto ESATTAMENTE ${referenceFiles.length} ${referenceFiles.length === 1 ? 'immagine di riferimento' : 'immagini di riferimento'}.`
-                : `You have received EXACTLY ${referenceFiles.length} reference ${referenceFiles.length === 1 ? 'image' : 'images'}.`;
-            
+
+        // STEP 2: Optimized multi-image combining guidance (reduced from ~400 to ~150 chars)
+        if (referenceFiles.length > 1) {
             const imageListText = language === 'it'
                 ? referenceFiles.map((_, idx) => `Immagine ${idx + 1}`).join(', ')
                 : referenceFiles.map((_, idx) => `Image ${idx + 1}`).join(', ');
-            
-            instructionParts.push(language === 'it' 
-                ? `⚠️ IMPERATIVO CRITICO - USA TUTTI I SOGGETTI DA TUTTE LE IMMAGINI: ${imageCountText} Le immagini sono: ${imageListText}. DEVI includere gli elementi principali da OGNI SINGOLA immagine nella composizione finale. NON ignorare nessuna immagine! NON concentrarti solo sulla prima! Analizza SEPARATAMENTE ogni immagine e identifica il suo soggetto principale, poi COMBINA tutti i soggetti in una scena coerente. Se vedi un personaggio in un'immagine E un oggetto in un'altra, ENTRAMBI devono apparire insieme. Le immagini NON sono alternative tra cui scegliere, ma elementi da COMBINARE obbligatoriamente. Tratta ogni immagine con uguale importanza!`
-                : `⚠️ CRITICAL IMPERATIVE - USE ALL SUBJECTS FROM ALL IMAGES: ${imageCountText} The images are: ${imageListText}. You MUST include the main elements from EACH AND EVERY image in the final composition. DO NOT ignore any image! DO NOT focus only on the first one! Analyze EACH image SEPARATELY and identify its main subject, then COMBINE all subjects into a coherent scene. If you see a character in one image AND an object in another, BOTH must appear together. The images are NOT alternatives to choose from, but elements to MANDATORILY COMBINE. Treat each image with equal importance!`);
+
+            instructionParts.push(language === 'it'
+                ? `⚠️ COMBINA tutti gli elementi da ${imageListText} in una scena coerente. Include il soggetto principale di ogni immagine.`
+                : `⚠️ COMBINE all elements from ${imageListText} into one coherent scene. Include the main subject from each image.`);
+        }
+
+        // STEP 3: Detect contextual relationship keywords and add micro-guidance
+        const promptLower = prompt.toLowerCase();
+        if (referenceFiles.length > 1) {
+            // Italian keywords
+            if (promptLower.includes('sulla') || promptLower.includes('sul') ||
+                promptLower.includes('on the') || promptLower.includes('on ')) {
+                instructionParts.push(language === 'it'
+                    ? `Applica l'elemento come texture/overlay.`
+                    : `Apply the element as texture/overlay.`);
+            } else if (promptLower.includes('con') || promptLower.includes('with')) {
+                instructionParts.push(language === 'it'
+                    ? `Aggiungi l'elemento nella scena.`
+                    : `Add the element to the scene.`);
+            } else if (promptLower.includes(' in ') || promptLower.includes('dentro')) {
+                instructionParts.push(language === 'it'
+                    ? `Posiziona l'elemento nel contesto.`
+                    : `Place the element in the context.`);
+            }
         }
 
         // Extract style description from style image (if provided) and add to prompt text
@@ -724,27 +864,29 @@ export const generateImage = async (prompt: string, aspectRatio: string, referen
             styleDescription = await extractStyleDescription(styleFile, userApiKey, language);
             if (styleDescription) {
                 instructionParts.push(language === 'it'
-                    ? `Applica questo stile visivo: ${styleDescription}`
-                    : `Apply this visual style: ${styleDescription}`);
+                    ? `Stile: ${styleDescription}`
+                    : `Style: ${styleDescription}`);
             }
         }
 
-        // Add structure guidance if structure image is provided (ControlNet-like)
+        // STEP 4: Add structure guidance if structure image is provided (optimized from ~300 to ~120 chars)
         if (structureFile) {
             // Add structure image to imageParts for visual reference
             imageParts.push(await fileToGenerativePart(structureFile));
 
             instructionParts.push(language === 'it'
-                ? `🏗️ COMPOSIZIONE E STRUTTURA OBBLIGATORIE - PRESERVA LA STRUTTURA SPAZIALE: L'ultima immagine fornita è una GUIDA STRUTTURALE (come ControlNet depth map). DEVI mantenere ESATTAMENTE la stessa composizione, disposizione spaziale, profondità e linee principali di questa immagine guida. Trattala come una mappa di profondità: mantieni le posizioni relative degli elementi, le proporzioni, la prospettiva e la struttura generale. NON cambiare il layout! NON riorganizzare gli elementi! Mantieni la geometria della scena identica. Puoi cambiare stile, colori e dettagli, ma la STRUTTURA deve rimanere INVARIATA.`
-                : `🏗️ MANDATORY COMPOSITION & STRUCTURE - PRESERVE SPATIAL STRUCTURE: The last image provided is a STRUCTURAL GUIDE (like ControlNet depth map). You MUST maintain EXACTLY the same composition, spatial arrangement, depth and main lines of this guide image. Treat it as a depth map: keep relative positions of elements, proportions, perspective and overall structure. DO NOT change the layout! DO NOT rearrange elements! Keep the scene geometry identical. You can change style, colors and details, but the STRUCTURE must remain UNCHANGED.`);
+                ? `🏗️ STRUTTURA: L'ultima immagine è una guida strutturale. Mantieni la stessa composizione spaziale, layout e geometria. Preserva posizioni, proporzioni e prospettiva.`
+                : `🏗️ STRUCTURE: Last image is a structural guide. Maintain the same spatial composition, layout and geometry. Preserve positions, proportions and perspective.`);
         }
 
-        // Build full prompt
-        let fullPrompt = `${instructionParts.join(' ')} ${prompt}`;
-       
+        // Build full prompt with enriched user prompt
+        let fullPrompt = `${instructionParts.join(' ')} ${enrichedPrompt}`;
+
         if (negativePrompt && negativePrompt.trim() !== '') {
             fullPrompt += ` --no ${negativePrompt.trim()}`;
         }
+
+        console.log('📏 Prompt length:', fullPrompt.length, 'chars');
 
         // CRITICAL: Images must come BEFORE text for proper reference interpretation
         const parts: any[] = [...imageParts, { text: fullPrompt }];
