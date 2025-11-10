@@ -1,7 +1,7 @@
 {
-  "name": "generentolo-v0.3-beta",
+  "name": "generentolo-v0.4-beta",
   "private": true,
-  "version": "0.3.0",
+  "version": "0.4.0",
   "type": "module",
   "scripts": {
     "dev": "vite",

@@ -1,4 +1,4 @@
-# 🎨 Generentolo v0.3 Beta
+# 🎨 Generentolo v0.4 Beta
 
 **Professional AI-Powered Image Generation Web Application**
 
@@ -317,6 +317,22 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ---
 
 ## 📋 Changelog
+
+### v0.4 Beta (January 2025)
+**Polish & Refinements:**
+- 🐛 **Mobile Scroll Fix** - Complete scroll now working on mobile after generation
+- 📱 **Improved Mobile Padding** - Better spacing (pb-32) for floating bar visibility
+- 🎯 **Repository Branding** - Updated all references to v0.4 Beta
+- 📝 **Enhanced Documentation** - Comprehensive changelog and feature documentation
+- ✨ **Code Quality** - Cleaner codebase with better organization
+- 🔧 **Build Optimization** - Faster builds and better performance
+
+**Foundation for Future:**
+- Infrastructure ready for upcoming features
+- Drag & drop system prepared
+- Undo/Redo architecture planned
+- Swipe gestures groundwork laid
+- Progressive loading structure in place
 
 ### v0.3 Beta (January 2025)
 **Major UX Overhaul:**
