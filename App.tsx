@@ -4,11 +4,12 @@ import * as geminiService from './services/geminiService';
 import * as upscaleService from './services/upscaleService';
 import { useKeyboardShortcuts, APP_SHORTCUTS } from './hooks/useKeyboardShortcuts';
 import { SunIcon, MoonIcon, UploadIcon, DownloadIcon, ZoomInIcon, SparklesIcon, CopyIcon, SettingsIcon, XIcon, CheckIcon, LanguageIcon, WandIcon, InfoIcon, AlertTriangleIcon, BrushIcon, DiceIcon, TrashIcon, ReloadIcon, EnvelopeIcon, StarIcon, CornerUpLeftIcon, UpscaleIcon } from './components/icons';
+import FloatingActionBar from './components/FloatingActionBar';
 
 // --- Localization ---
 const translations = {
   en: {
-    headerTitle: 'Generentolo v0.2 Beta',
+    headerTitle: 'Generentolo v0.3 Beta',
     headerSubtitle: 'Let me do it for you!',
     letMeDoForYou: 'Magic Prompt',
     refImagesTitle: 'Reference & Style Images',
@@ -218,13 +219,13 @@ interface LocalizationContextType {
   t: typeof translations.en;
 }
 
-const LanguageContext = createContext<LocalizationContextType>({
+export const LanguageContext = createContext<LocalizationContextType>({
   language: 'en',
   setLanguage: () => {},
   t: translations.en,
 });
 
-const useLocalization = () => useContext(LanguageContext);
+export const useLocalization = () => useContext(LanguageContext);
 
 
 // --- Helper Functions ---
@@ -2044,9 +2045,9 @@ export default function App() {
         <LanguageContext.Provider value={{ language, setLanguage, t }}>
             <div className="h-screen w-screen bg-light-bg dark:bg-dark-bg text-light-text dark:text-dark-text flex flex-col font-sans">
                 <Header theme={theme} toggleTheme={toggleTheme} onOpenSettings={() => setIsSettingsOpen(true)} onOpenFeedback={() => setIsFeedbackOpen(true)} onOpenShortcuts={() => setIsShortcutsOpen(true)} onOpenHelp={() => setIsHelpOpen(true)} />
-                <main className="flex-1 flex flex-col lg:flex-row gap-4 px-4 pb-4 overflow-y-auto lg:overflow-hidden">
-                    {/* --- Left Sidebar --- */}
-                    <aside className="w-full lg:w-[380px] flex-shrink-0 bg-light-surface/50 dark:bg-dark-surface/30 backdrop-blur-xl rounded-3xl overflow-y-auto">
+                <main className="flex-1 flex flex-col lg:flex-row gap-4 px-4 pb-4 overflow-y-auto lg:overflow-hidden mb-20 lg:mb-28">
+                    {/* --- Left Sidebar (only references/style/structure) --- */}
+                    <aside className="w-full lg:w-[280px] flex-shrink-0 bg-light-surface/50 dark:bg-dark-surface/30 backdrop-blur-xl rounded-3xl overflow-y-auto">
                         <ReferencePanel
                             onAddImages={handleAddImages}
                             onRemoveImage={handleRemoveImage}
@@ -2057,32 +2058,6 @@ export default function App() {
                             onAddStructureImage={setStructureImage}
                             onRemoveStructureImage={() => setStructureImage(null)}
                             structureImage={structureImage}
-                        />
-                        <div className="border-t border-light-border dark:border-dark-border mx-4"></div>
-                        <ControlPanel
-                            editedPrompt={editedPrompt}
-                            onEditedPromptChange={setEditedPrompt}
-                            dynamicTools={dynamicTools}
-                            selectedAspectRatio={aspectRatio}
-                            onAspectRatioChange={handleAspectRatioChange}
-                            onMagicPrompt={handleMagicPrompt}
-                            onGenerateTools={handleGenerateDynamicTools}
-                            isLoading={isLoading}
-                            isToolsLoading={isToolsLoading}
-                            isEnhancing={isEnhancing}
-                            referenceImages={referenceImages}
-                            styleReferenceImage={styleReferenceImage}
-                            numImages={numImagesToGenerate}
-                            onNumImagesChange={setNumImagesToGenerate}
-                            userApiKey={userApiKey}
-                            language={language}
-                            negativePrompt={negativePrompt}
-                            onNegativePromptChange={setNegativePrompt}
-                            seed={seed}
-                            onSeedChange={setSeed}
-                            onRandomizeSeed={handleRandomizeSeed}
-                            onCopySeed={handleCopySeedCallback}
-                            promptTextareaRef={promptTextareaRef}
                         />
                     </aside>
                     
@@ -2167,6 +2142,33 @@ export default function App() {
                         </aside>
                     </div>
                 </main>
+
+                {/* Floating Action Bar */}
+                <FloatingActionBar
+                    prompt={editedPrompt}
+                    onPromptChange={setEditedPrompt}
+                    promptTextareaRef={promptTextareaRef}
+                    onGenerate={handleGenerate}
+                    onEnhancePrompt={handleEnhancePrompt}
+                    onMagicPrompt={handleMagicPrompt}
+                    onGenerate3Prompts={handleGenerateCreativePrompts}
+                    isLoading={isLoading}
+                    isEnhancing={isEnhancing}
+                    hasReferences={referenceImages.length > 0 || !!styleReferenceImage || !!structureImage}
+                    hasGeneratedImages={currentImages.length > 0}
+                    aspectRatio={aspectRatio}
+                    onAspectRatioChange={handleAspectRatioChange}
+                    numImages={numImagesToGenerate}
+                    onNumImagesChange={setNumImagesToGenerate}
+                    seed={seed}
+                    onSeedChange={setSeed}
+                    onRandomizeSeed={handleRandomizeSeed}
+                    negativePrompt={negativePrompt}
+                    onNegativePromptChange={setNegativePrompt}
+                    dynamicTools={dynamicTools}
+                    onGenerateTools={handleGenerateDynamicTools}
+                    isToolsLoading={isToolsLoading}
+                />
 
                 <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} onSave={handleSaveApiKey} currentApiKey={userApiKey} />
                 <HelpModal isOpen={isHelpOpen} onClose={() => setIsHelpOpen(false)} />
