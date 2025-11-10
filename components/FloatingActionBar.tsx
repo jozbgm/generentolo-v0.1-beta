@@ -72,14 +72,25 @@ const FloatingActionBar: React.FC<FloatingActionBarProps> = ({
 
     const handleExpandClick = useCallback(() => {
         setIsExpanded(true);
+        setShowAdvancedPanel(false);
+        setShowAspectMenu(false);
+        setShowNumImagesMenu(false);
         setTimeout(() => promptTextareaRef.current?.focus(), 100);
     }, [promptTextareaRef]);
 
     return (
         <>
+            {/* Backdrop for Advanced Panel */}
+            {showAdvancedPanel && (
+                <div
+                    className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40"
+                    onClick={() => setShowAdvancedPanel(false)}
+                />
+            )}
+
             {/* Advanced Panel Overlay (slide up from bottom) */}
             {showAdvancedPanel && (
-                <div className="fixed bottom-20 left-0 right-0 lg:left-[280px] bg-light-surface/98 dark:bg-dark-surface/98 backdrop-blur-xl border-t border-light-border dark:border-dark-border rounded-t-2xl shadow-2xl z-40 p-6 max-h-[60vh] overflow-y-auto">
+                <div className="fixed bottom-[88px] left-1/2 -translate-x-1/2 lg:left-[calc(50%+160px)] lg:-translate-x-1/2 w-[95%] lg:w-[calc(100%-360px)] max-w-5xl bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-2xl shadow-2xl z-50 p-6 max-h-[50vh] overflow-y-auto">
                     <div className="flex items-center justify-between mb-4">
                         <h3 className="font-semibold text-light-text dark:text-dark-text">{t.advancedSettings || 'Advanced Settings'}</h3>
                         <button
@@ -150,151 +161,34 @@ const FloatingActionBar: React.FC<FloatingActionBarProps> = ({
             )}
 
             {/* Main Floating Bar */}
-            <div className="fixed bottom-0 left-0 right-0 lg:left-[280px] bg-light-surface/95 dark:bg-dark-surface/95 backdrop-blur-xl border-t border-light-border dark:border-dark-border shadow-2xl z-50">
+            <div className="fixed bottom-4 left-1/2 -translate-x-1/2 lg:left-[calc(50%+160px)] lg:-translate-x-1/2 w-[95%] lg:w-[calc(100%-360px)] max-w-5xl bg-light-surface/98 dark:bg-dark-surface/98 backdrop-blur-xl border border-light-border dark:border-dark-border rounded-2xl shadow-2xl z-[60]">
                 {/* Compact Mode */}
                 {!isExpanded && (
-                    <div className="flex items-center gap-3 px-4 lg:px-6 py-3 lg:py-4">
+                    <div className="flex items-center gap-3 px-4 py-3">
                         {/* Prompt Preview (clickable to expand) */}
                         <button
                             onClick={handleExpandClick}
-                            className="flex-1 text-left px-4 py-2.5 lg:py-3 bg-light-surface-accent dark:bg-dark-surface-accent rounded-xl text-sm text-light-text-muted dark:text-dark-text-muted truncate hover:bg-light-border dark:hover:bg-dark-border transition-colors"
+                            className="flex-1 text-left px-4 py-2.5 bg-transparent text-sm text-light-text-muted dark:text-dark-text-muted truncate hover:text-light-text dark:hover:text-dark-text transition-colors min-w-[200px] lg:min-w-[300px]"
                         >
                             {prompt || t.promptPlaceholder || "Describe what you want to generate..."}
                         </button>
 
-                        {/* Quick Pills */}
-                        <div className="relative">
+                        {/* Quick Pills - Compact Style */}
+                        <div className="relative z-[70]">
                             <button
-                                onClick={() => setShowAspectMenu(!showAspectMenu)}
-                                className="hidden lg:flex items-center gap-2 px-4 py-2.5 bg-light-surface-accent dark:bg-dark-surface-accent rounded-full text-sm text-light-text dark:text-dark-text hover:bg-light-border dark:hover:bg-dark-border transition-colors"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setShowAspectMenu(!showAspectMenu);
+                                    setShowNumImagesMenu(false);
+                                }}
+                                className="flex items-center gap-1.5 px-3 py-2 bg-light-surface-accent/50 dark:bg-dark-surface-accent/50 rounded-lg text-xs text-light-text dark:text-dark-text hover:bg-light-surface-accent dark:hover:bg-dark-surface-accent transition-colors whitespace-nowrap"
                             >
-                                <span>📐</span>
                                 <span>{aspectRatio}</span>
                             </button>
                             {showAspectMenu && (
-                                <div className="absolute bottom-full mb-2 right-0 bg-light-surface dark:bg-dark-surface rounded-xl shadow-2xl p-2 min-w-[120px] border border-light-border dark:border-dark-border">
-                                    {aspectRatios.map(ratio => (
-                                        <button
-                                            key={ratio}
-                                            onClick={() => {
-                                                onAspectRatioChange(ratio);
-                                                setShowAspectMenu(false);
-                                            }}
-                                            className={`w-full px-4 py-2 text-left rounded-lg hover:bg-light-surface-accent dark:hover:bg-dark-surface-accent transition-colors ${ratio === aspectRatio ? 'bg-brand-purple/20 text-brand-purple' : 'text-light-text dark:text-dark-text'}`}
-                                        >
-                                            {ratio}
-                                        </button>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-
-                        <div className="relative">
-                            <button
-                                onClick={() => setShowNumImagesMenu(!showNumImagesMenu)}
-                                className="hidden lg:flex items-center gap-2 px-4 py-2.5 bg-light-surface-accent dark:bg-dark-surface-accent rounded-full text-sm text-light-text dark:text-dark-text hover:bg-light-border dark:hover:bg-dark-border transition-colors"
-                            >
-                                <span>🖼️</span>
-                                <span>{numImages}</span>
-                            </button>
-                            {showNumImagesMenu && (
-                                <div className="absolute bottom-full mb-2 right-0 bg-light-surface dark:bg-dark-surface rounded-xl shadow-2xl p-2 min-w-[100px] border border-light-border dark:border-dark-border">
-                                    {numImagesOptions.map(num => (
-                                        <button
-                                            key={num}
-                                            onClick={() => {
-                                                onNumImagesChange(num);
-                                                setShowNumImagesMenu(false);
-                                            }}
-                                            className={`w-full px-4 py-2 text-left rounded-lg hover:bg-light-surface-accent dark:hover:bg-dark-surface-accent transition-colors ${num === numImages ? 'bg-brand-purple/20 text-brand-purple' : 'text-light-text dark:text-dark-text'}`}
-                                        >
-                                            {num} {num === 1 ? 'image' : 'images'}
-                                        </button>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-
-                        <button
-                            onClick={() => setShowAdvancedPanel(!showAdvancedPanel)}
-                            className="hidden lg:flex items-center gap-2 px-4 py-2.5 bg-light-surface-accent dark:bg-dark-surface-accent rounded-full text-sm text-light-text dark:text-dark-text hover:bg-light-border dark:hover:bg-dark-border transition-colors"
-                        >
-                            <span>⚙️</span>
-                            <span className="hidden xl:inline">Advanced</span>
-                        </button>
-
-                        {/* Primary Action */}
-                        <button
-                            onClick={onGenerate}
-                            disabled={isLoading}
-                            className="px-6 lg:px-8 py-2.5 lg:py-3 bg-gradient-to-r from-brand-purple to-brand-pink rounded-xl font-semibold text-white shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
-                        >
-                            {isLoading ? "⏳" : "⚡"} <span className="hidden sm:inline">{isLoading ? t.generating : t.generate}</span>
-                        </button>
-                    </div>
-                )}
-
-                {/* Expanded Mode */}
-                {isExpanded && (
-                    <div className="px-4 lg:px-6 py-4 lg:py-6 space-y-4">
-                        {/* Prompt Textarea */}
-                        <textarea
-                            ref={promptTextareaRef}
-                            value={prompt}
-                            onChange={(e) => onPromptChange(e.target.value)}
-                            rows={3}
-                            placeholder={t.promptPlaceholder || "Describe what you want to generate..."}
-                            className="w-full px-4 py-3 bg-light-surface-accent dark:bg-dark-surface-accent rounded-xl text-light-text dark:text-dark-text resize-none focus:ring-2 focus:ring-brand-purple outline-none"
-                        />
-
-                        {/* Quick Actions */}
-                        <div className="flex items-center gap-2 lg:gap-3 flex-wrap">
-                            <button
-                                onClick={onEnhancePrompt}
-                                disabled={isEnhancing || !prompt}
-                                className="px-3 lg:px-4 py-2 bg-light-surface-accent dark:bg-dark-surface-accent rounded-lg text-sm hover:bg-light-border dark:hover:bg-dark-border transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                                ✨ {t.enhancePrompt || 'Enhance'}
-                            </button>
-                            <button
-                                onClick={onMagicPrompt}
-                                disabled={isEnhancing || !hasReferences}
-                                className="px-3 lg:px-4 py-2 bg-light-surface-accent dark:bg-dark-surface-accent rounded-lg text-sm hover:bg-light-border dark:hover:bg-dark-border transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                                🪄 {t.magicPrompt || 'Magic'}
-                            </button>
-                            <button
-                                onClick={onGenerate3Prompts}
-                                disabled={isEnhancing || !hasReferences}
-                                className="px-3 lg:px-4 py-2 bg-light-surface-accent dark:bg-dark-surface-accent rounded-lg text-sm hover:bg-light-border dark:hover:bg-dark-border transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                                📝 {t.threePrompts || '3 Prompts'}
-                            </button>
-
-                            <div className="flex-1" />
-
-                            {/* Collapse */}
-                            <button
-                                onClick={() => setIsExpanded(false)}
-                                className="px-3 lg:px-4 py-2 text-light-text-muted dark:text-dark-text-muted hover:text-light-text dark:hover:text-dark-text"
-                            >
-                                ▼
-                            </button>
-                        </div>
-
-                        {/* Controls Row */}
-                        <div className="flex items-center gap-2 lg:gap-3 flex-wrap">
-                            {/* Aspect Ratio */}
-                            <div className="relative">
-                                <button
-                                    onClick={() => setShowAspectMenu(!showAspectMenu)}
-                                    className="flex items-center gap-2 px-3 lg:px-4 py-2 bg-light-surface-accent dark:bg-dark-surface-accent rounded-full text-sm text-light-text dark:text-dark-text hover:bg-light-border dark:hover:bg-dark-border transition-colors"
-                                >
-                                    <span>📐</span>
-                                    <span>{aspectRatio}</span>
-                                </button>
-                                {showAspectMenu && (
-                                    <div className="absolute bottom-full mb-2 left-0 bg-light-surface dark:bg-dark-surface rounded-xl shadow-2xl p-2 min-w-[120px] border border-light-border dark:border-dark-border">
+                                <>
+                                    <div className="fixed inset-0 z-[65]" onClick={() => setShowAspectMenu(false)} />
+                                    <div className="absolute bottom-full mb-2 right-0 bg-light-surface dark:bg-dark-surface rounded-xl shadow-2xl p-2 min-w-[120px] border border-light-border dark:border-dark-border z-[70]">
                                         {aspectRatios.map(ratio => (
                                             <button
                                                 key={ratio}
@@ -302,26 +196,31 @@ const FloatingActionBar: React.FC<FloatingActionBarProps> = ({
                                                     onAspectRatioChange(ratio);
                                                     setShowAspectMenu(false);
                                                 }}
-                                                className={`w-full px-4 py-2 text-left rounded-lg hover:bg-light-surface-accent dark:hover:bg-dark-surface-accent transition-colors ${ratio === aspectRatio ? 'bg-brand-purple/20 text-brand-purple' : 'text-light-text dark:text-dark-text'}`}
+                                                className={`w-full px-3 py-1.5 text-left text-sm rounded-lg hover:bg-light-surface-accent dark:hover:bg-dark-surface-accent transition-colors ${ratio === aspectRatio ? 'bg-brand-purple/20 text-brand-purple' : 'text-light-text dark:text-dark-text'}`}
                                             >
                                                 {ratio}
                                             </button>
                                         ))}
                                     </div>
-                                )}
-                            </div>
+                                </>
+                            )}
+                        </div>
 
-                            {/* Num Images */}
-                            <div className="relative">
-                                <button
-                                    onClick={() => setShowNumImagesMenu(!showNumImagesMenu)}
-                                    className="flex items-center gap-2 px-3 lg:px-4 py-2 bg-light-surface-accent dark:bg-dark-surface-accent rounded-full text-sm text-light-text dark:text-dark-text hover:bg-light-border dark:hover:bg-dark-border transition-colors"
-                                >
-                                    <span>🖼️</span>
-                                    <span>{numImages}</span>
-                                </button>
-                                {showNumImagesMenu && (
-                                    <div className="absolute bottom-full mb-2 left-0 bg-light-surface dark:bg-dark-surface rounded-xl shadow-2xl p-2 min-w-[120px] border border-light-border dark:border-dark-border">
+                        <div className="relative z-[70]">
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setShowNumImagesMenu(!showNumImagesMenu);
+                                    setShowAspectMenu(false);
+                                }}
+                                className="flex items-center gap-1.5 px-3 py-2 bg-light-surface-accent/50 dark:bg-dark-surface-accent/50 rounded-lg text-xs text-light-text dark:text-dark-text hover:bg-light-surface-accent dark:hover:bg-dark-surface-accent transition-colors whitespace-nowrap"
+                            >
+                                <span>{numImages}x</span>
+                            </button>
+                            {showNumImagesMenu && (
+                                <>
+                                    <div className="fixed inset-0 z-[65]" onClick={() => setShowNumImagesMenu(false)} />
+                                    <div className="absolute bottom-full mb-2 right-0 bg-light-surface dark:bg-dark-surface rounded-xl shadow-2xl p-2 min-w-[100px] border border-light-border dark:border-dark-border z-[70]">
                                         {numImagesOptions.map(num => (
                                             <button
                                                 key={num}
@@ -329,42 +228,84 @@ const FloatingActionBar: React.FC<FloatingActionBarProps> = ({
                                                     onNumImagesChange(num);
                                                     setShowNumImagesMenu(false);
                                                 }}
-                                                className={`w-full px-4 py-2 text-left rounded-lg hover:bg-light-surface-accent dark:hover:bg-dark-surface-accent transition-colors ${num === numImages ? 'bg-brand-purple/20 text-brand-purple' : 'text-light-text dark:text-dark-text'}`}
+                                                className={`w-full px-3 py-1.5 text-left text-sm rounded-lg hover:bg-light-surface-accent dark:hover:bg-dark-surface-accent transition-colors ${num === numImages ? 'bg-brand-purple/20 text-brand-purple' : 'text-light-text dark:text-dark-text'}`}
                                             >
-                                                {num} {num === 1 ? 'image' : 'images'}
+                                                {num}x
                                             </button>
                                         ))}
                                     </div>
-                                )}
-                            </div>
+                                </>
+                            )}
+                        </div>
 
-                            {/* Seed Display */}
+                        <button
+                            onClick={() => {
+                                setShowAdvancedPanel(!showAdvancedPanel);
+                                setShowAspectMenu(false);
+                                setShowNumImagesMenu(false);
+                                setIsExpanded(false);
+                            }}
+                            className="flex items-center gap-1.5 px-3 py-2 bg-light-surface-accent/50 dark:bg-dark-surface-accent/50 rounded-lg text-xs text-light-text dark:text-dark-text hover:bg-light-surface-accent dark:hover:bg-dark-surface-accent transition-colors"
+                        >
+                            <span>⚙️</span>
+                        </button>
+
+                        {/* Primary Action */}
+                        <button
+                            onClick={onGenerate}
+                            disabled={isLoading}
+                            className="px-5 py-2.5 bg-brand-purple hover:bg-brand-purple/90 rounded-lg font-medium text-white text-sm shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                        >
+                            {isLoading ? "⏳ Generating..." : "⚡ Generate"}
+                        </button>
+                    </div>
+                )}
+
+                {/* Expanded Mode */}
+                {isExpanded && (
+                    <div className="px-4 py-3 space-y-3">
+                        {/* Prompt Textarea */}
+                        <textarea
+                            ref={promptTextareaRef}
+                            value={prompt}
+                            onChange={(e) => onPromptChange(e.target.value)}
+                            rows={3}
+                            placeholder={t.promptPlaceholder || "Describe what you want to generate..."}
+                            className="w-full px-4 py-2.5 bg-transparent text-light-text dark:text-dark-text resize-none focus:ring-2 focus:ring-brand-purple/50 rounded-xl outline-none"
+                        />
+
+                        {/* Quick Actions + Collapse */}
+                        <div className="flex items-center gap-2 flex-wrap">
                             <button
-                                onClick={() => setShowAdvancedPanel(true)}
-                                className="flex items-center gap-2 px-3 lg:px-4 py-2 bg-light-surface-accent dark:bg-dark-surface-accent rounded-full text-sm text-light-text dark:text-dark-text hover:bg-light-border dark:hover:bg-dark-border transition-colors"
+                                onClick={onEnhancePrompt}
+                                disabled={isEnhancing || !prompt}
+                                className="px-3 py-1.5 bg-light-surface-accent/50 dark:bg-dark-surface-accent/50 rounded-lg text-xs hover:bg-light-surface-accent dark:hover:bg-dark-surface-accent transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             >
-                                <span>🎲</span>
-                                <span className="hidden lg:inline">{seed || 'Random'}</span>
+                                ✨ Enhance
                             </button>
-
-                            {/* Advanced */}
                             <button
-                                onClick={() => setShowAdvancedPanel(!showAdvancedPanel)}
-                                className="flex items-center gap-2 px-3 lg:px-4 py-2 bg-light-surface-accent dark:bg-dark-surface-accent rounded-full text-sm text-light-text dark:text-dark-text hover:bg-light-border dark:hover:bg-dark-border transition-colors"
+                                onClick={onMagicPrompt}
+                                disabled={isEnhancing || !hasReferences}
+                                className="px-3 py-1.5 bg-light-surface-accent/50 dark:bg-dark-surface-accent/50 rounded-lg text-xs hover:bg-light-surface-accent dark:hover:bg-dark-surface-accent transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             >
-                                <span>⚙️</span>
-                                <span className="hidden lg:inline">Advanced</span>
+                                🪄 Magic
+                            </button>
+                            <button
+                                onClick={onGenerate3Prompts}
+                                disabled={isEnhancing || !hasReferences}
+                                className="px-3 py-1.5 bg-light-surface-accent/50 dark:bg-dark-surface-accent/50 rounded-lg text-xs hover:bg-light-surface-accent dark:hover:bg-dark-surface-accent transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                📝 3 Prompts
                             </button>
 
                             <div className="flex-1" />
 
-                            {/* Generate */}
+                            {/* Collapse */}
                             <button
-                                onClick={onGenerate}
-                                disabled={isLoading}
-                                className="px-6 lg:px-8 py-2.5 lg:py-3 bg-gradient-to-r from-brand-purple to-brand-pink rounded-xl font-semibold text-white shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                onClick={() => setIsExpanded(false)}
+                                className="px-3 py-1.5 text-light-text-muted dark:text-dark-text-muted hover:text-light-text dark:hover:text-dark-text text-xs"
                             >
-                                {isLoading ? "⏳ Generating..." : `⚡ ${t.generate || 'Generate'}`}
+                                ▼ Close
                             </button>
                         </div>
                     </div>
