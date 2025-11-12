@@ -10,7 +10,7 @@ import FloatingActionBar from './components/FloatingActionBar';
 // --- Localization ---
 const translations = {
   en: {
-    headerTitle: 'Generentolo v0.5 Beta',
+    headerTitle: 'Generentolo v0.6 Beta',
     headerSubtitle: 'Let me do it for you!',
     letMeDoForYou: 'Magic Prompt',
     refImagesTitle: 'Reference & Style Images',
@@ -111,7 +111,7 @@ const translations = {
 
   },
   it: {
-    headerTitle: 'Generentolo v0.5 Beta',
+    headerTitle: 'Generentolo v0.6 Beta',
     headerSubtitle: 'Let me do it for you!',
     letMeDoForYou: 'Magic Prompt',
     refImagesTitle: 'Immagini di Riferimento e Stile',
