@@ -612,16 +612,54 @@ const PromptTextarea = React.memo<{
     disabled: boolean;
     textareaRef: React.RefObject<HTMLTextAreaElement>;
 }>(({ value, onChange, placeholder, disabled, textareaRef }) => {
+    const handlePaste = async () => {
+        try {
+            const text = await navigator.clipboard.readText();
+            onChange(text);
+        } catch (err) {
+            console.error('Failed to read clipboard:', err);
+        }
+    };
+
+    const handleClear = () => {
+        onChange('');
+        textareaRef.current?.focus();
+    };
+
     return (
-        <textarea
-            ref={textareaRef}
-            value={value}
-            onChange={(e) => onChange(e.target.value)}
-            rows={4}
-            className="w-full p-3 bg-light-surface/50 dark:bg-dark-surface/50 border border-light-border dark:border-dark-border rounded-xl focus:ring-2 focus:ring-brand-purple focus:outline-none text-light-text dark:text-dark-text placeholder-light-text-muted dark:placeholder-dark-text-muted"
-            placeholder={placeholder}
-            disabled={disabled}
-        />
+        <div className="relative">
+            <textarea
+                ref={textareaRef}
+                value={value}
+                onChange={(e) => onChange(e.target.value)}
+                rows={4}
+                className="w-full p-3 pr-20 bg-light-surface/50 dark:bg-dark-surface/50 border border-light-border dark:border-dark-border rounded-xl focus:ring-2 focus:ring-brand-purple focus:outline-none text-light-text dark:text-dark-text placeholder-light-text-muted dark:placeholder-dark-text-muted"
+                placeholder={placeholder}
+                disabled={disabled}
+            />
+            <div className="absolute top-2 right-2 flex gap-1">
+                <button
+                    onClick={handlePaste}
+                    disabled={disabled}
+                    className="p-1.5 rounded-lg bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border hover:bg-light-surface-accent dark:hover:bg-dark-surface-accent transition-all hover:scale-110 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                    aria-label="Paste from clipboard"
+                    title="Paste"
+                >
+                    <CopyIcon className="w-4 h-4 text-light-text-muted dark:text-dark-text-muted" />
+                </button>
+                {value && (
+                    <button
+                        onClick={handleClear}
+                        disabled={disabled}
+                        className="p-1.5 rounded-lg bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border hover:bg-red-500/10 dark:hover:bg-red-500/20 transition-all hover:scale-110 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                        aria-label="Clear prompt"
+                        title="Clear"
+                    >
+                        <XIcon className="w-4 h-4 text-red-500" />
+                    </button>
+                )}
+            </div>
+        </div>
     );
 });
 
